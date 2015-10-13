@@ -1,0 +1,145 @@
+__author__ = 'darynka'
+
+import urllib
+import json
+import datetime
+
+
+start_year = int(raw_input("Start year: "))
+start_month = int(raw_input("Start month: "))
+start_date = int(raw_input("Start date: "))
+end_year = int(raw_input("End year: "))
+end_month = int(raw_input("End month: "))
+end_date = int(raw_input("End date: "))
+
+f = open('changes_PFTS'+str(start_date)+str(start_month)+str(start_year)+str(end_date)+str(end_month)+str(end_year)+'.csv', 'a')
+header = 'Date;Ticker;ISIN;Listing_date;Listing_date_Reg;Asset_Type;Issuer_ID;Issuer_Name;Quantity;Nominal;Currency;Changes;\n'
+f.write(header)
+
+first_date = datetime.date(start_year, start_month, start_date)
+last_date = datetime.date(end_year, end_month, end_date)
+# print first_date
+# print last_date
+def daterange(start_date, end_date):
+    for n in range(int ((end_date - start_date).days + 1)):
+        yield start_date + datetime.timedelta(n)
+
+
+for single_date in daterange(first_date, last_date):
+    current_date = single_date.strftime("%d.%m.%Y")
+    print current_date
+    link = 'http://www.pfts.ua/data/listingondate.json?date='+str(current_date)+'&lang=0'
+    # print link
+    pfts = urllib.urlopen(link)
+    print 'Connecting to ' + link
+
+    # http://www.pfts.ua/uk/moreinformation/NBU3113/
+    basic_json = pfts.read()
+    basic_json = json.loads(basic_json)
+
+    count = len(basic_json['listingondate']['data'])
+    print count
+    #tickers_list = []
+
+    buffer=''
+    for i in range(0, count):
+        listing = basic_json['listingondate']['data'][i][2]
+        fromlisting = basic_json['listingondate']['data'][i][3]
+        #print listing
+        if listing != fromlisting:
+            ticker = basic_json['listingondate']['data'][i][1]
+            ticker = ticker.encode('utf-8')
+            print ticker
+
+            date = basic_json['listingondate']['data'][i][0]
+            date = date.encode('utf-8')
+            print date
+
+            isin = basic_json['listingondate']['data'][i][4]
+            isin = isin.encode('utf-8')
+
+            asset_type = basic_json['listingondate']['data'][i][12]
+            asset_type = asset_type.encode('utf-8')
+
+            listdate = basic_json['listingondate']['data'][i][5]
+            if listdate == None:
+                listdate = 'N/A'
+            else:
+                listdate = listdate
+                listdate = listdate.encode('utf-8')
+
+            listingdate = basic_json['listingondate']['data'][i][6]
+            if listingdate == None:
+                listingdate = 'N/A'
+            else:
+                listingdate = listingdate
+                listingdate = listingdate.encode('utf-8')
+
+            #list_level = basic_json['listingondate']['data'][i][3]
+            # if list_level == None:
+            #     list_level = "N/A"
+            # else:
+            #     list_level = str(list_level)
+            #     list_level.encode('utf-8')
+
+            issuerid = basic_json['listingondate']['data'][i][7]
+            issuerid = issuerid.encode('utf-8')
+
+            issuername = basic_json['listingondate']['data'][i][8]
+            issuername = issuername.encode('utf-8')
+
+            quantity = basic_json['listingondate']['data'][i][9]
+            quantity = quantity.encode('utf-8')
+
+            nominal = basic_json['listingondate']['data'][i][10]
+            nominal = nominal.encode('utf-8')
+
+            currency = basic_json['listingondate']['data'][i][11]
+            currency = currency.encode('utf-8')
+            if listing == None:
+                if fromlisting ==0:
+                    changes = 'delisted from exchange list'
+                elif fromlisting >= 1:
+                    changes = 'delisted from exchange list and register'
+            elif fromlisting ==None:
+                if listing == 0:
+                    changes = 'added to exchange list'
+                elif listing >= 1:
+                    changes = 'added to exchange list and register'
+            elif listing ==0:
+                if fromlisting >= 1:
+                    changes = 'delisted from exchange register'
+            elif fromlisting ==0:
+                if listing >=1:
+                    changes = 'added to exchange register'
+            elif fromlisting >= 1:
+                if listing ==1:
+                    changes = 'transferred to 1st level of exchange register'
+                elif listing ==2:
+                    changes == 'transferred to 2nd level of exchange register'
+
+
+            row = str(date+";"+ ticker+";"+ isin+";"+listdate+";"+listingdate+";"+asset_type+";"+issuerid+";"+issuername+";"+quantity+";"+nominal+";"+currency+";"+changes+"\n")
+            buffer=buffer+row
+            print buffer
+            i = i+1
+
+    f.write(buffer)
+
+
+
+# print tickers_list
+f.close()
+# count_tickers = len(tickers_list)
+# print count_tickers
+
+# for k in range(0, count_tickers-1):
+#     ticker_url = tickers_list[k]
+#     url_deep = 'http://www.pfts.ua/uk/moreinformation/' + ticker_url
+#     pfts_ticker = urllib.urlopen(url_deep)
+#     ticker_html = pfts_ticker.read()
+#     html_file = open(ticker_url+'.html', 'w')
+#     html_file.write(ticker_html)
+
+    # k = k+1
+
